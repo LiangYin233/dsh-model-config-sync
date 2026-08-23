@@ -12,24 +12,24 @@
 
 ```sh
 # 从 GitHub 安装
-dsh plugin --profile web add github:LiangYin233/dsh-provider-model-configurator#v0.3.9
+dsh plugin --profile web add github:LiangYin233/dsh-provider-model-configurator#v0.10.0
 
 # 或从 GitHub tarball 安装
-dsh plugin --profile web add https://github.com/LiangYin233/dsh-provider-model-configurator/archive/refs/tags/v0.3.9.tar.gz
+dsh plugin --profile web add https://github.com/LiangYin233/dsh-provider-model-configurator/archive/refs/tags/v0.10.0.tar.gz
 
 # 或从本地打包安装
 npm pack
-dsh plugin --profile web add ./dsh-provider-model-configurator-0.3.9.tgz
+dsh plugin --profile web add ./dsh-provider-model-configurator-0.10.0.tgz
 ```
 
 安装后**重启 Web 服务器并刷新页面**,打开设置 → 左侧导航「模型 Pro」(Models 页之后)。
 
 ## 功能
 
-- 选择**目标提供商**,列出其显式模型条目与配置摘要,可**编辑 / 删除**;
-- **新建**:输入模型 ID,手动填写显示名、上下文窗口、最大输出、输入模态(text/image)、推理档位(档位 → wire 值,`off` 留空 = 不发送);推理档位与输入模态均支持「未设置(继承目录)」,避免把未配置的字段写成显式默认值;
-- **复制填充**:「使用模型预设」打开来源选择器,从预设目录或其他提供商挑一个模型快速填充表单;
-- **兼容开关 (compat)**:编辑 `thinkingFormat`(openai / deepseek / openrouter / together / zai / qwen / string-thinking / ant-ling)与 `supportsReasoningEffort`(true / false / 未设置),供 openai-completions 推理分发读取;
+- 选择**目标提供商**,在模型 ID 组合框中点击输入框弹出模型列表、输入时前缀筛选,↑↓ 选择、Enter/点击确认后进入编辑;输入框内容为已有模型时显示**复制 / 删除**,为新 ID 时显示**新建**(填入 ID 与显示名称并展开配置区,点「应用配置」才真正写入);
+- **新建**:输入新模型 ID 后点「新建」,手动填写显示名、上下文窗口、最大输出、输入模态(text/image)、推理档位(档位 → wire 值,`off` 留空 = 不发送);推理档位与输入模态均支持「未设置(继承目录)」,避免把未配置的字段写成显式默认值;
+- **复制**:对已有模型点「复制」,其全部配置填入表单并自动追加 `-copy` 后缀(重名时递增 `-copy2`…),再按需修改后应用;
+- **兼容选项 (compat)**:按目标提供商的 api 协议分组显示 `PiAiCompatProfile` 的全部字段——`thinkingFormat`(openai / deepseek / openrouter / together / zai / qwen / chat-template / qwen-chat-template / string-thinking / ant-ling)、`maxTokensField`、`cacheControlFormat`、`chatTemplateKwargs`(JSON)与 16 个布尔开关(三态:未设置 / true / false);`supportsDeveloperRole: false` 强制推理模型的系统提示词退回 `system` 角色,用于不接受 `developer` 角色的私有网关(报 400: expected one of system… 时设置);
 
 > **目录快照行为**:在尚未显式配置模型列表的目录提供商上新建/应用模型时,插件会把内置目录的当前模型列表整体写入为该提供商的显式条目(目录中已有的 ID 原地更新,新 ID 追加),之后再编辑均基于这份显式列表;目录后续更新不会自动合并进已快照的列表。目录提供商若删到零个显式条目,则回退为内置目录(未快照)状态。
 

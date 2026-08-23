@@ -14,7 +14,7 @@
  *   - settings : get / writable / mutate
  */
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { THINKING_LEVELS, THINKING_FORMATS, TYPERT_MANIFEST } from './contract.js'
+import { THINKING_LEVELS, THINKING_FORMATS, MAX_TOKENS_FIELDS, CACHE_CONTROL_FORMATS, CHAT_TEMPLATE_VARS, COMPAT_BOOLS, TYPERT_MANIFEST } from './contract.js'
 
 /** Cordis plugin name (the Loader entry and client bundle id). */
 export const name = 'dsh-provider-model-configurator'
@@ -190,6 +190,7 @@ class ModelConfiguratorRuntime extends TypertRemoteService {
         entries,
         usesCatalog: !hasExplicit,
         hasModelOverrides: overrideCount > 0,
+        api: typeof p.api === 'string' ? p.api : '',
         catalogModels: [],
       }
       items.push(item)
@@ -264,7 +265,10 @@ class ModelConfiguratorRuntime extends TypertRemoteService {
       if (!hasThinking) return { ok: false, error: '推理档位必须包含至少一个非 off 档位' }
       built.reasoningEfforts = efforts
     }
-    // DSH reasoning-dispatch compat switches (openai-completions only).
+    // DSH compat switches, whitelisted field by field so a switch the profile
+    // schema does not take can never be written (the adapter resolves each
+    // against its protocol gate and refuses mismatches loudly). The value
+    // domains mirror dsh-llm-pi-ai's settings schema exactly.
     if (entry.compat && typeof entry.compat === 'object' && !Array.isArray(entry.compat)) {
       const compat = {}
       if (entry.compat.thinkingFormat !== undefined) {
@@ -273,11 +277,41 @@ class ModelConfiguratorRuntime extends TypertRemoteService {
         }
         compat.thinkingFormat = entry.compat.thinkingFormat
       }
-      if (entry.compat.supportsReasoningEffort !== undefined) {
-        if (typeof entry.compat.supportsReasoningEffort !== 'boolean') {
-          return { ok: false, error: 'supportsReasoningEffort 必须是布尔值' }
+      if (entry.compat.maxTokensField !== undefined) {
+        if (typeof entry.compat.maxTokensField !== 'string' || MAX_TOKENS_FIELDS.indexOf(entry.compat.maxTokensField) < 0) {
+          return { ok: false, error: `未知 maxTokensField "${entry.compat.maxTokensField}"` }
         }
-        compat.supportsReasoningEffort = entry.compat.supportsReasoningEffort
+        compat.maxTokensField = entry.compat.maxTokensField
+      }
+      if (entry.compat.cacheControlFormat !== undefined) {
+        if (typeof entry.compat.cacheControlFormat !== 'string' || CACHE_CONTROL_FORMATS.indexOf(entry.compat.cacheControlFormat) < 0) {
+          return { ok: false, error: `未知 cacheControlFormat "${entry.compat.cacheControlFormat}"` }
+        }
+        compat.cacheControlFormat = entry.compat.cacheControlFormat
+      }
+      if (entry.compat.chatTemplateKwargs !== undefined) {
+        const kwargs = entry.compat.chatTemplateKwargs
+        if (kwargs === null || typeof kwargs !== 'object' || Array.isArray(kwargs)) {
+          return { ok: false, error: 'chatTemplateKwargs 必须是 JSON 对象' }
+        }
+        for (const key of Object.keys(kwargs)) {
+          const value = kwargs[key]
+          const scalar = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || value === null
+          const placeholder = typeof value === 'object' && value !== null && !Array.isArray(value)
+            && typeof value.$var === 'string' && CHAT_TEMPLATE_VARS.indexOf(value.$var) >= 0
+            && typeof value.omitWhenOff === 'boolean'
+          if (!scalar && !placeholder) {
+            return { ok: false, error: `chatTemplateKwargs 的值 "${key}" 不合法:允许 string / number / boolean / null 或 { $var, omitWhenOff }` }
+          }
+        }
+        compat.chatTemplateKwargs = kwargs
+      }
+      for (const field of COMPAT_BOOLS) {
+        if (entry.compat[field] === undefined) continue
+        if (typeof entry.compat[field] !== 'boolean') {
+          return { ok: false, error: `${field} 必须是布尔值` }
+        }
+        compat[field] = entry.compat[field]
       }
       if (Object.keys(compat).length) built.compat = compat
     }

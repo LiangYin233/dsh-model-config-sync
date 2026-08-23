@@ -7,11 +7,11 @@
  * from here (bundled into lib/client.js), and the host entry imports
  * THINKING_LEVELS / TYPERT_MANIFEST (lib/index.js). Copied to lib/ by build.mjs.
  */
-import { THINKING_LEVELS, THINKING_FORMATS } from '../shared/thinking.js'
+import { THINKING_LEVELS, THINKING_FORMATS, MAX_TOKENS_FIELDS, CACHE_CONTROL_FORMATS, CHAT_TEMPLATE_VARS, COMPAT_BOOLS } from '../shared/thinking.js'
 
 // Re-export the canonical constants so index.js keeps importing them from
 // this contract; the values live in src/shared/thinking.js (single source).
-export { THINKING_LEVELS, THINKING_FORMATS }
+export { THINKING_LEVELS, THINKING_FORMATS, MAX_TOKENS_FIELDS, CACHE_CONTROL_FORMATS, CHAT_TEMPLATE_VARS, COMPAT_BOOLS }
 
 /** One strict codec: only `parse` is required by the typert boundary. */
 const schema = (parse) => ({ parse })
