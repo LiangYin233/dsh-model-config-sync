@@ -110,12 +110,14 @@ interface PickerItem {
 }
 
 /**
- * Combobox input with a prefix-filtered dropdown: focus opens the list,
- * typing filters by title/key prefix, ↑/↓ move the highlight, Enter or a
- * click confirms (via onConfirm), Escape or a blur closes. The input text is
- * controlled by the caller (`value` / `onChange`); the dropdown state is
- * internal. Used for both the provider route picker and the model picker so
- * the two behave identically.
+ * Combobox input with a similarity-sorted dropdown: focus opens the list,
+ * typing reorders it by longest-common-prefix similarity against the
+ * title/key (more shared prefix chars lead, ties keep the original order,
+ * unrelated rows stay visible at the bottom), ↑/↓ move the highlight, Enter
+ * or a click confirms (via onConfirm), Escape or a blur closes. The input
+ * text is controlled by the caller (`value` / `onChange`); the dropdown
+ * state is internal. Used for both the provider route picker and the model
+ * picker so the two behave identically.
  */
 function PickerInput(props: {
   value: string
@@ -130,13 +132,27 @@ function PickerInput(props: {
   const [index, setIndex] = React.useState(0)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const query = props.value.trim().toLowerCase()
-  const filtered = query
-    ? props.items.filter((it) => it.title.toLowerCase().startsWith(query) || it.key.toLowerCase().startsWith(query))
-    : props.items
-  // Keep the highlight inside the filtered list when typing shrinks it.
+  // Sort by prefix similarity rather than filter: each row scores the length
+  // of its longest common prefix with the query (title or key, whichever
+  // matches more); higher scores lead, ties keep the original order (stable
+  // sort). The full list stays visible — "deepseek-v4" brings both
+  // deepseek-v4-flash (fuller match) and deepseek-v4-pro (close) to the top.
+  const lcp = (a: string, b: string) => {
+    const n = Math.min(a.length, b.length)
+    let i = 0
+    while (i < n && a.charCodeAt(i) === b.charCodeAt(i)) i++
+    return i
+  }
+  const display: PickerItem[] = query
+    ? props.items
+        .map((it) => ({ it, score: Math.max(lcp(it.title.toLowerCase(), query), lcp(it.key.toLowerCase(), query)) }))
+        .sort((a, b) => b.score - a.score)
+        .map((x) => x.it)
+    : [...props.items]
+  // Keep the highlight inside the list when typing reorders it.
   React.useEffect(() => {
-    setIndex((i) => (filtered.length ? Math.min(i, filtered.length - 1) : 0))
-  }, [filtered.length])
+    setIndex((i) => (display.length ? Math.min(i, display.length - 1) : 0))
+  }, [display.length])
   /**
    * Confirm one row and close the dropdown. Both paths (Enter and a mouse
    * click) go through here: the item rows call preventDefault on mousedown so
@@ -163,17 +179,17 @@ function PickerInput(props: {
         onClick={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowDown') { e.preventDefault(); setIndex((i) => Math.min(i + 1, filtered.length - 1)); return }
+          if (e.key === 'ArrowDown') { e.preventDefault(); setIndex((i) => Math.min(i + 1, display.length - 1)); return }
           if (e.key === 'ArrowUp') { e.preventDefault(); setIndex((i) => Math.max(i - 1, 0)); return }
-          if (e.key === 'Enter') { e.preventDefault(); if (filtered.length && index >= 0) confirm(filtered[index]) }
+          if (e.key === 'Enter') { e.preventDefault(); if (display.length && index >= 0) confirm(display[index]) }
           if (e.key === 'Escape') { e.preventDefault(); setOpen(false) }
         }}
       />
       {open ? (
         <div className="mcfg-picker" role="listbox" aria-label={props.ariaLabel}>
-          {filtered.length === 0 ? (
+          {display.length === 0 ? (
             <div className="mcfg-pickerEmpty">{props.emptyText}</div>
-          ) : filtered.map((it, i) => (
+          ) : display.map((it, i) => (
             <div
               key={it.key}
               className={'mcfg-pickerItem' + (i === index ? ' mcfg-pickerActive' : '')}
