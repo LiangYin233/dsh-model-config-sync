@@ -84,8 +84,9 @@
   line-height: 18px;
 }
 
-/* Compat options: semantic groups with a small title, one option per row —
-   label + control on one line, explanation underneath in a smaller type. */
+/* Compat options: semantic groups with a small title; every option is its
+   own bordered card — label + control vertically centered on one line, the
+   explanation below inside the same card, both kept inside the left edge. */
 .mcfg-compatGroup {
   display: flex;
   flex-direction: column;
@@ -106,7 +107,18 @@
 .mcfg-compatField {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* Dark mode: the theme presenter marks <body data-ds-dark-theme>; cards get
+   the deeper surface layer instead of the base one. */
+body[data-ds-dark-theme] .mcfg-compatField {
+  background: var(--dsw-alias-bg-layer-3);
 }
 
 .mcfg-compatTop {
