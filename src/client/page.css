@@ -73,6 +73,80 @@
   appearance: auto;
 }
 
+/* JSON textarea for chat_template_kwargs (monospace, multi-line). */
+.mcfg-textarea {
+  height: auto;
+  min-height: 54px;
+  padding: 6px 10px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Compat options: semantic groups with a small title; every option is its
+   own bordered card — label + control vertically centered on one line, the
+   explanation below inside the same card, both kept inside the left edge. */
+.mcfg-compatGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+  padding-top: 10px;
+  margin-top: 8px;
+}
+
+.mcfg-compatGroupTitle {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+}
+
+.mcfg-compatField {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--dsw-alias-bg-base);
+}
+
+/* Dark mode: the theme presenter marks <body data-ds-dark-theme>; cards get
+   the deeper surface layer instead of the base one. */
+body[data-ds-dark-theme] .mcfg-compatField {
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.mcfg-compatTop {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.mcfg-compatLabel {
+  flex: 1;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.mcfg-compatSelect {
+  width: 176px;
+  flex: none;
+}
+
+.mcfg-compatHint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  margin: 0;
+}
+
 .mcfg-shrink {
   width: auto;
   flex: none;
@@ -99,13 +173,7 @@
   margin: 0;
 }
 
-.mcfg-divider {
-  border-top: 1px solid var(--dsw-alias-border-l1);
-  padding-top: 12px;
-  margin-top: 4px;
-}
-
-/* Model-id input with a "use preset" action button. */
+/* Model-id input with action buttons (copy / delete / new). */
 .mcfg-idWrap {
   display: flex;
   gap: 6px;
@@ -115,66 +183,59 @@
   flex: 1;
 }
 
-/* Copy-source picker modal. */
-.mcfg-modalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+/* Model combobox: the id input with its dropdown list. */
+.mcfg-pickerWrap {
+  position: relative;
 }
 
-.mcfg-modal {
-  box-sizing: border-box;
-  width: min(440px, calc(100% - 32px));
-  max-height: calc(100vh - 64px);
-  overflow-y: auto;
+.mcfg-picker {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  max-height: 280px;
+  overflow-y: auto;
   border: 1px solid var(--dsw-alias-border-l1);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
-  color: var(--dsw-alias-label-primary);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
 }
 
-.mcfg-modalHead {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.mcfg-modalTitle {
-  color: var(--dsw-alias-label-primary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-}
-
-.mcfg-modalActions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.mcfg-info {
+.mcfg-pickerItem {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  border-left: 2px solid var(--dsw-alias-border-l1);
-  padding-left: 10px;
+  gap: 2px;
+  padding: 6px 10px;
+  cursor: pointer;
 }
 
-.mcfg-infoLine {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+.mcfg-pickerItem:hover,
+.mcfg-pickerActive {
+  background: var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-1));
+}
+
+.mcfg-pickerId {
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
   line-height: 18px;
-  margin: 0;
+}
+
+.mcfg-pickerSummary {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mcfg-pickerEmpty {
+  padding: 8px 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
 }
 
 .mcfg-btn {
@@ -192,15 +253,6 @@
 
 .mcfg-btn:hover {
   background: var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-1));
-}
-
-/* Compact square icon button (modal close). */
-.mcfg-idBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  padding: 0;
 }
 
 .mcfg-btnPrimary {

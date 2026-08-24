@@ -3,7 +3,7 @@
  * dynamic plugin). Pure data transformations — no React, no DOM, no host RPC.
  */
 
-import { THINKING_LEVELS as LEVELS, THINKING_FORMATS as FORMATS } from '../shared/thinking.js'
+import { THINKING_LEVELS as LEVELS, THINKING_FORMATS as FORMATS, COMPAT_BOOLS } from '../shared/thinking.js'
 
 /** Canonical reasoning effort levels (wire names), from the shared source. */
 export const THINKING_LEVELS: readonly string[] = LEVELS
@@ -11,10 +11,18 @@ export const THINKING_LEVELS: readonly string[] = LEVELS
 /** Reasoning-dispatch wire formats DSH (dsh-llm-pi-ai) accepts. */
 export const THINKING_FORMATS: readonly string[] = FORMATS
 
+/** Boolean switches of the compat profile, in profile order. */
+export const COMPAT_BOOLEANS: readonly string[] = COMPAT_BOOLS
+
+/** Form-state key of one compat boolean switch, e.g. supportsStore → compatSupportsStore. */
+export const compatBoolKey = (field: string) => 'compat' + field[0].toUpperCase() + field.slice(1)
+
 /**
  * Build one profile model entry object from the form state.
  * `reasoningMode: 'unset'` and `inputUnset: true` mean "no field written" —
  * the entry keeps (or inherits) the catalog value instead of an explicit one.
+ * `compatChatTemplateKwargs` carries validated JSON text; the caller (page)
+ * verifies it parses before calling this, so a JSON.parse here cannot throw.
  */
 export function buildEntry(form: any): any {
   const e: any = { id: form.id.trim() }
@@ -43,7 +51,14 @@ export function buildEntry(form: any): any {
   }
   const compat: Record<string, unknown> = {}
   if (form.compatThinkingFormat) compat.thinkingFormat = form.compatThinkingFormat
-  if (form.compatSupportsReasoningEffort !== '') compat.supportsReasoningEffort = form.compatSupportsReasoningEffort === 'true'
+  if (form.compatMaxTokensField) compat.maxTokensField = form.compatMaxTokensField
+  if (form.compatCacheControlFormat) compat.cacheControlFormat = form.compatCacheControlFormat
+  const kwargsText = String(form.compatChatTemplateKwargs || '').trim()
+  if (kwargsText) compat.chatTemplateKwargs = JSON.parse(kwargsText)
+  for (const field of COMPAT_BOOLS) {
+    const v = form[compatBoolKey(field)]
+    if (v !== undefined && v !== '') compat[field] = v === 'true'
+  }
   if (Object.keys(compat).length) e.compat = compat
   return e
 }
@@ -60,7 +75,7 @@ export function entryToForm(entry: any): any {
     ? Object.keys(re)
     : []
   const compat = entry.compat && typeof entry.compat === 'object' && !Array.isArray(entry.compat) ? entry.compat : {}
-  return {
+  const out: any = {
     id: typeof entry.id === 'string' ? entry.id : '',
     name: typeof entry.name === 'string' ? entry.name : '',
     contextWindow: entry.contextWindow ? String(entry.contextWindow) : '',
@@ -75,8 +90,16 @@ export function entryToForm(entry: any): any {
       on: true,
     })),
     compatThinkingFormat: typeof compat.thinkingFormat === 'string' ? compat.thinkingFormat : '',
-    compatSupportsReasoningEffort: typeof compat.supportsReasoningEffort === 'boolean' ? String(compat.supportsReasoningEffort) : '',
+    compatMaxTokensField: typeof compat.maxTokensField === 'string' ? compat.maxTokensField : '',
+    compatCacheControlFormat: typeof compat.cacheControlFormat === 'string' ? compat.cacheControlFormat : '',
+    compatChatTemplateKwargs: compat.chatTemplateKwargs && typeof compat.chatTemplateKwargs === 'object' && !Array.isArray(compat.chatTemplateKwargs)
+      ? JSON.stringify(compat.chatTemplateKwargs, null, 2)
+      : '',
   }
+  for (const field of COMPAT_BOOLS) {
+    out[compatBoolKey(field)] = typeof compat[field] === 'boolean' ? String(compat[field]) : ''
+  }
+  return out
 }
 
 /** One-line summary of an existing model entry for the provider model list. */
@@ -93,7 +116,17 @@ export function modelSummary(entry: any): string {
   if (entry.compat && typeof entry.compat === 'object' && !Array.isArray(entry.compat)) {
     const bits: string[] = []
     if (typeof entry.compat.thinkingFormat === 'string') bits.push('tf: ' + entry.compat.thinkingFormat)
+    if (typeof entry.compat.supportsDeveloperRole === 'boolean') bits.push('sdr: ' + entry.compat.supportsDeveloperRole)
     if (typeof entry.compat.supportsReasoningEffort === 'boolean') bits.push('sre: ' + entry.compat.supportsReasoningEffort)
+    if (typeof entry.compat.maxTokensField === 'string') bits.push('mtf: ' + entry.compat.maxTokensField)
+    if (typeof entry.compat.cacheControlFormat === 'string') bits.push('ccf: ' + entry.compat.cacheControlFormat)
+    if (entry.compat.chatTemplateKwargs && typeof entry.compat.chatTemplateKwargs === 'object' && !Array.isArray(entry.compat.chatTemplateKwargs)) {
+      bits.push('ctk: ' + Object.keys(entry.compat.chatTemplateKwargs).length)
+    }
+    // Remaining boolean switches, compacted to a count so the summary stays
+    // one line; the form shows each individually.
+    const extra = COMPAT_BOOLS.filter((f) => f !== 'supportsDeveloperRole' && f !== 'supportsReasoningEffort' && typeof entry.compat[f] === 'boolean').length
+    if (extra) bits.push('sw: ' + extra)
     if (bits.length) parts.push('compat: ' + bits.join(', '))
   }
   return parts.length ? parts.join(' · ') : '—'

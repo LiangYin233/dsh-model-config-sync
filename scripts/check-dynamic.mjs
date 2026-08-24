@@ -6,9 +6,10 @@
  *
  * Both are function bodies (top-level `return ...`), so `node --check`
  * cannot parse them. `new Function(body)` validates them as function bodies.
- * It also pins the inline THINKING_LEVELS / THINKING_FORMATS copies inside
- * src/host/dynamic.js to the canonical values in src/shared/thinking.js so
- * the standalone body can never drift from the shared source silently.
+ * It also pins the inline THINKING_LEVELS / THINKING_FORMATS / compat-domain
+ * copies inside src/host/dynamic.js to the canonical values in
+ * src/shared/thinking.js so the standalone body can never drift from the
+ * shared source silently.
  */
 import { readFile } from 'node:fs/promises'
 
@@ -34,7 +35,7 @@ const grab = (src, name) => {
 }
 const shared = await readFile('src/shared/thinking.js', 'utf8')
 const dynamic = await readFile('src/host/dynamic.js', 'utf8')
-for (const name of ['THINKING_LEVELS', 'THINKING_FORMATS']) {
+for (const name of ['THINKING_LEVELS', 'THINKING_FORMATS', 'MAX_TOKENS_FIELDS', 'CACHE_CONTROL_FORMATS', 'CHAT_TEMPLATE_VARS', 'COMPAT_BOOLS']) {
   try {
     if (grab(dynamic, name) !== grab(shared, name)) fail(`src/host/dynamic.js: ${name} drifted from src/shared/thinking.js`)
   } catch (err) {
